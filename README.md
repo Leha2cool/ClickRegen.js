@@ -1,336 +1,602 @@
-# ClickRegen.js
-
 # ClickRegen.js - Документация
 
-ClickRegen.js - это мощная JavaScript библиотека для создания кликер-игр (clicker games) с гибкой настройкой и продвинутыми механиками. Она предоставляет все необходимые инструменты для управления ресурсами, улучшениями, генераторами, достижениями и событиями, а также включает систему сохранения и офлайн-прогресса.
+ClickRegen.js - это мощная библиотека для создания кликер-игр (incremental games) на JavaScript. Она предоставляет полный набор инструментов для управления игровой механикой, включая ресурсы, улучшения, генераторы, достижения, события, квесты и систему престижа.
 
+---
+```html
+<script src="ClickRegen.js"><script>
+```
+---
 ## Основные возможности
 
-1. **Управление ресурсами**: Множественные валюты с автоматической генерацией
-2. **Система улучшений**: Многоуровневые апгрейды с эффектами
-3. **Генераторы ресурсов**: Автоматическое производство с растущей стоимостью
-4. **Достижения**: Задания с наградами и условиями разблокировки
-5. **События**: Временные события с прогрессом и наградами
-6. **Сохранение игры**: Автосохранение, офлайн-прогресс, импорт/экспорт
-7. **Система событий**: Гибкая система подписки на игровые события
-8. **Модификаторы**: Глобальные и специфические множители
+- Управление ресурсами и валютами
+- Система улучшений с эффектами
+- Автоматические генераторы ресурсов
+- Достижения с наградами
+- Случайные события
+- Система квестов
+- Механика престижа
+- Автосохранение и офлайн-прогресс
+- Система модификаторов (аддитивные, мультипликативные)
+- Расширенная система событий
+- Импорт/экспорт сохранений
 
----
-## Установка:
-```html
-<script src="https://cdn.jsdelivr.net/gh/Leha2cool/ClickRegen.js@main/ClickRegen/ClickRegen.js"></script>
-```
----
-
-## Инициализация игры
+## Инициализация
 
 ```javascript
-const game = new ClickRegen(config);
-```
+const game = new ClickRegen({
+    // Начальные ресурсы
+    resources: {
+        gold: 0,
+        gems: 5
+    },
+    
+    // Доступные валюты
+    currencies: ['gold', 'gems'],
+    
+    // Улучшения
+    upgrades: [
+        {
+            id: 'better_click',
+            name: 'Better Click',
+            description: 'Увеличивает силу клика на 0.2',
+            cost: { gold: 15 },
+            effects: [
+                { type: 'click', value: 0.2 }
+            ],
+            unlockCondition: (game) => game.getResource('gold') >= 10
+        }
+    ],
+    
+    // Генераторы
+    generators: [
+        {
+            id: 'gold_miner',
+            name: 'Gold Miner',
+            currency: 'gold',
+            baseProduction: 0.1,
+            cost: 50,
+            unlockCondition: (game) => game.getResource('gold') >= 20
+        }
+    ],
+    
+    // Достижения
+    achievements: [
+        {
+            id: 'first_click',
+            name: 'First Click',
+            description: 'Совершите первый клик',
+            condition: (game) => game.getTotalClicks() >= 1,
+            reward: { gold: 10 }
+        }
+    ],
+    
+    // События
+    events: [
+        {
+            id: 'gold_rush',
+            name: 'Gold Rush',
+            description: 'Золотая лихорадка! Двойная добыча золота на 30 секунд',
+            duration: 30,
+            modifiers: [
+                { type: 'production', value: 2.0, target: 'gold' }
+            ]
+        }
+    ],
+    
+    // Квесты
+    quests: [
+        {
+            id: 'click_100_times',
+            name: '100 Clicks',
+            description: 'Сделайте 100 кликов',
+            condition: {
+                type: 'click',
+                target: 100
+            },
+            reward: { gems: 1 }
+        }
+    ],
+    
+    // Престиж
+    prestige: [
+        {
+            id: 'prestige_boost',
+            name: 'Golden Touch',
+            description: 'Увеличивает добычу золота на 10%',
+            cost: 25,
+            effects: [
+                { type: 'production', value: 0.1, target: 'gold' }
+            ],
+            unlockCondition: (game) => game.state.prestige.level >= 1
+        }
+    ],
+    
+    // Настройки
+    saveInterval: 5000, // Автосохранение каждые 5 секунд
+    offlineProgress: true,
+    maxOfflineTime: 86400 // Максимум 24 часа офлайн-прогресса
+});
 
-### Конфигурационный объект
-
-| Параметр        | Тип     | По умолчанию       | Описание                                 |
-|-----------------|---------|--------------------|------------------------------------------|
-| `resources`     | Object  | `{ points: 0 }`    | Начальные значения ресурсов              |
-| `currencies`    | Array   | `['points']`       | Список валют в игре                      |
-| `upgrades`      | Array   | `[]`               | Список улучшений                         |
-| `generators`    | Array   | `[]`               | Список генераторов                       |
-| `achievements`  | Array   | `[]`               | Список достижений                        |
-| `events`        | Array   | `[]`               | Список событий                           |
-| `saveInterval`  | Number  | `1000`             | Интервал автосохранения (мс)             |
-| `offlineProgress`| Boolean| `true`             | Включить офлайн-прогресс                 |
-
-## Структуры объектов
-
-### Улучшение (Upgrade)
-
-```javascript
-{
-  id: 'unique_id',           // Уникальный идентификатор
-  name: 'Upgrade Name',      // Название для отображения
-  cost: { currency: 100 },   // Стоимость в ресурсах
-  effects: [                 // Список эффектов
-    {
-      type: 'click',         // Тип эффекта (click/production/generator)
-      value: 1,              // Значение эффекта
-      generatorId: 'gen_id'  // Опционально: ID генератора
-    }
-  ],
-  unlockCondition: (game) => {  // Условие разблокировки
-    return game.getResource('currency') >= 50;
-  }
-}
-```
-
-### Генератор (Generator)
-
-```javascript
-{
-  id: 'unique_id',           // Уникальный идентификатор
-  name: 'Generator Name',    // Название для отображения
-  currency: 'points',        // Какую валюту генерирует
-  baseProduction: 1,         // Базовое производство в секунду
-  cost: 10,                  // Начальная стоимость (число или объект)
-  unlockCondition: (game) => {  // Условие разблокировки
-    return game.getResource('points') >= 15;
-  }
-}
-```
-
-### Достижение (Achievement)
-
-```javascript
-{
-  id: 'unique_id',           // Уникальный идентификатор
-  name: 'Achievement Name',  // Название для отображения
-  condition: (game) => {     // Условие выполнения
-    return game.getResource('gold') >= 1000;
-  },
-  reward: { gems: 100 },     // Награда за выполнение
-  multipliers: {             // Глобальные множители
-    click: 0.1,              // +10% к кликам
-    production: 0.05         // +5% к производству
-  }
-}
-```
-
-### Событие (Event)
-
-```javascript
-{
-  id: 'unique_id',           // Уникальный идентификатор
-  name: 'Event Name',        // Название для отображения
-  duration: 60,              // Длительность в секундах
-  rewards: { gold: 500 },    // Награда за выполнение
-  startCondition: (game) => {  // Условие старта
-    return game.getResource('gold') >= 100;
-  }
-}
+// Запуск игры
+game.start();
 ```
 
 ## Основные методы
 
 ### Управление игрой
 
-- `click(currency = 'points', amount = 1)` - Зарегистрировать клик
-- `buyUpgrade(id)` - Купить улучшение
-- `buyGenerator(id)` - Купить генератор
-- `claimAchievement(id)` - Получить награду за достижение
-- `startEvent(id)` - Начать событие
-- `reset()` - Сбросить игру
-
-### Получение информации
-
-- `getResource(name)` - Получить количество ресурса
-- `getUpgrade(id)` - Получить данные улучшения
-- `getGenerator(id)` - Получить данные генератора
-- `getAchievement(id)` - Получить данные достижения
-- `getEvent(id)` - Получить данные события
-- `getPlayTime()` - Получить время игры (секунды)
-- `getTotalClicks()` - Получить общее количество кликов
-
-### Сохранение и загрузка
-
-- `save()` - Сохранить игру
-- `load()` - Загрузить игру
-- `exportSave()` - Экспортировать сохранение (строка)
-- `importSave(encodedData)` - Импортировать сохранение
-
-### Система событий
-
-- `on(event, callback)` - Подписаться на событие
-
-## Система событий (Event System)
-
-Библиотека генерирует события, на которые можно подписаться:
+- **start()**: Запускает игровые циклы
+- **stop()**: Останавливает игру и сохраняет состояние
+- **reset()**: Сбрасывает игру в начальное состояние
 
 ```javascript
-game.on('event_name', (data) => {
-  // Обработка события
-});
+game.start();
+// Через некоторое время...
+game.stop();
 ```
 
-### Доступные события
+### Работа с ресурсами
 
-| Событие               | Данные                               | Описание                        |
-|-----------------------|--------------------------------------|---------------------------------|
-| `click`               | `{ currency, amount }`               | Произведен клик                 |
-| `upgradeBought`       | `{ id, level }`                      | Куплено улучшение               |
-| `generatorBought`     | `{ id, count }`                      | Куплен генератор                |
-| `achievementUnlocked` | `{ id }`                             | Разблокировано достижение       |
-| `achievementClaimed`  | `{ id }`                             | Получена награда за достижение  |
-| `eventStarted`        | `{ id }`                             | Начато событие                  |
-| `eventCompleted`      | `{ id }`                             | Завершено событие               |
-| `update`              | `{ delta }`                          | Обновление игры (каждую секунду)|
-| `save`                | `{ data }`                           | Игра сохранена                  |
-| `load`                | `{ data }`                           | Игра загружена                  |
-| `reset`               | -                                    | Игра сброшена                   |
-| `offlineProgress`     | `{ time }`                           | Начислен офлайн-прогресс        |
+- **click(currency, amount)**: Совершает клик по указанной валюте
+- **getResource(name)**: Возвращает количество ресурса
+- **getResourcePerSecond(currency)**: Возвращает производство ресурса в секунду
 
-## Модификаторы и расчеты
-
-### Глобальные множители
-
-Библиотека автоматически рассчитывает множители:
-- `game.getGlobalMultiplier('click')` - Множитель для кликов
-- `game.getGlobalMultiplier('production')` - Множитель для производства
-- `game.getGeneratorMultiplier(id)` - Множитель для конкретного генератора
-
-### Расчет стоимости
-
-Стоимость объектов рассчитывается по формуле:
 ```javascript
-cost = baseCost * 1.15^owned
+// Совершить клик по золоту
+game.click('gold');
+
+// Получить текущее количество золота
+const gold = game.getResource('gold');
+
+// Получить производство золота в секунду
+const goldPerSecond = game.getResourcePerSecond('gold');
 ```
 
-## Пример игры
+### Покупка улучшений и генераторов
+
+- **buyUpgrade(id, quantity)**: Покупает улучшение
+- **buyGenerator(id, quantity)**: Покупает генератор
+- **getUpgrade(id)**: Возвращает информацию об улучшении
+- **getGenerator(id)**: Возвращает информацию о генераторе
 
 ```javascript
-// Конфигурация игры
-const config = {
-  resources: { gold: 0, gems: 0 },
-  currencies: ['gold', 'gems'],
-  
-  generators: [
-    {
-      id: 'gold_mine',
-      name: 'Gold Mine',
-      currency: 'gold',
-      baseProduction: 0.1,
-      cost: 15,
-      unlockCondition: (game) => game.getResource('gold') >= 10
-    },
-    {
-      id: 'gem_cave',
-      name: 'Gem Cave',
-      currency: 'gems',
-      baseProduction: 0.01,
-      cost: { gold: 100 },
-      unlockCondition: (game) => game.getResource('gold') >= 50
-    }
-  ],
-  
-  upgrades: [
-    {
-      id: 'better_pickaxe',
-      name: 'Better Pickaxe',
-      cost: { gold: 50 },
-      effects: [{ type: 'click', value: 0.5 }],
-      unlockCondition: (game) => game.getResource('gold') >= 20
-    },
-    {
-      id: 'mining_boost',
-      name: 'Mining Boost',
-      cost: { gold: 200 },
-      effects: [
-        { type: 'generator', generatorId: 'gold_mine', value: 0.2 }
-      ],
-      unlockCondition: (game) => game.getGenerator('gold_mine').owned > 0
-    }
-  ],
-  
-  achievements: [
-    {
-      id: 'first_gold',
-      name: 'First Gold',
-      condition: (game) => game.getResource('gold') >= 1,
-      reward: { gems: 5 }
-    },
-    {
-      id: 'gold_digger',
-      name: 'Gold Digger',
-      condition: (game) => game.getResource('gold') >= 1000,
-      reward: { gems: 50 },
-      multipliers: { click: 0.1 }
-    }
-  ],
-  
-  events: [
-    {
-      id: 'gold_rush',
-      name: 'Gold Rush',
-      duration: 120,
-      rewards: { gold: 500, gems: 10 },
-      startCondition: (game) => game.getResource('gold') >= 100
-    }
-  ],
-  
-  saveInterval: 5000
-};
+// Купить улучшение "Better Click"
+game.buyUpgrade('better_click');
 
-// Инициализация игры
-const game = new ClickRegen(config);
+// Купить 5 золотых шахт
+game.buyGenerator('gold_miner', 5);
 
-// Подписка на события
-game.on('update', () => {
-  console.log('Gold:', game.getResource('gold'));
-  console.log('Gems:', game.getResource('gems'));
-});
-
-game.on('achievementUnlocked', (data) => {
-  console.log('Achievement unlocked:', data.id);
-});
-
-// Клик по основной валюте
-document.getElementById('click-btn').addEventListener('click', () => {
-  game.click('gold');
-});
-
-// Покупка генератора
-document.getElementById('buy-mine').addEventListener('click', () => {
-  game.buyGenerator('gold_mine');
-});
+// Получить информацию об улучшении
+const upgrade = game.getUpgrade('better_click');
+console.log(`Уровень улучшения: ${upgrade.owned}`);
 ```
 
-## Расширенные возможности
+### Достижения и квесты
 
-### Пользовательские условия
-
-Все условия разблокировки - это функции, которые получают экземпляр игры:
+- **claimAchievement(id)**: Забирает награду за достижение
+- **claimQuest(id)**: Забирает награду за квест
+- **getAchievement(id)**: Возвращает информацию о достижении
+- **getQuest(id)**: Возвращает информацию о квесте
 
 ```javascript
-unlockCondition: (game) => {
-  // Любая логика с доступом к состоянию игры
-  return game.getResource('gold') >= 100 && 
-         game.getGenerator('gold_mine').owned >= 5;
+// Забрать награду за достижение
+game.claimAchievement('first_click');
+
+// Забрать награду за квест
+game.claimQuest('click_100_times');
+
+// Проверить статус достижения
+const achievement = game.getAchievement('first_click');
+if (achievement.unlocked) {
+    console.log('Достижение разблокировано!');
 }
 ```
 
-### Кастомные эффекты
+### Система престижа
 
-Вы можете создавать сложные эффекты, комбинируя типы:
+- **prestige()**: Выполняет престиж (перезапуск игры с бонусами)
+- **canPrestige()**: Проверяет, доступен ли престиж
+- **buyPrestigeUpgrade(id)**: Покупает престижное улучшение
 
 ```javascript
-effects: [
-  { type: 'click', value: 1.0 }, // +100% к кликам
-  { type: 'production', value: 0.5 }, // +50% ко всему производству
-  { 
-    type: 'generator', 
-    generatorId: 'gold_mine', 
-    value: 0.2 // +20% к производству золотых шахт
-  }
+// Проверить возможность престижа
+if (game.canPrestige()) {
+    // Выполнить престиж
+    game.prestige();
+}
+
+// Купить престижное улучшение
+game.buyPrestigeUpgrade('prestige_boost');
+```
+
+### Сохранение и загрузка
+
+- **save()**: Сохраняет текущее состояние игры
+- **load()**: Загружает сохранённую игру
+- **exportSave()**: Экспортирует сохранение в виде строки
+- **importSave(encodedData)**: Импортирует сохранение из строки
+
+```javascript
+// Вручную сохранить игру
+game.save();
+
+// Экспортировать сохранение
+const saveData = game.exportSave();
+console.log('Код сохранения:', saveData);
+
+// Импортировать сохранение
+game.importSave(saveData);
+```
+
+### События
+
+- **on(event, callback)**: Регистрирует обработчик события
+- **off(event, callback)**: Удаляет обработчик события
+- **triggerEvent(event, data)**: Вызывает событие
+
+```javascript
+// Подписаться на событие клика
+game.on('click', (data) => {
+    console.log(`Клик! Получено ${data.amount} ${data.currency}`);
+});
+
+// Подписаться на покупку улучшения
+game.on('upgradeBought', (data) => {
+    console.log(`Куплено улучшение ${data.id} (уровень ${data.newLevel})`);
+});
+
+// Подписаться на офлайн-прогресс
+game.on('offlineProgress', (data) => {
+    console.log(`Загружен офлайн-прогресс: ${data.time.toFixed(1)} секунд`);
+});
+```
+
+## Подробное описание систем
+
+### Ресурсы и валюты
+
+Система ресурсов позволяет управлять различными игровыми валютами. Ресурсы автоматически инициализируются при первом обращении.
+
+```javascript
+// Добавить собственный ресурс
+const game = new ClickRegen({
+    resources: {
+        gold: 0,
+        gems: 5,
+        energy: 100 // Новый ресурс
+    },
+    currencies: ['gold', 'gems', 'energy'] // Добавить в список валют
+});
+
+// Использовать новый ресурс
+game.click('energy', 5);
+```
+
+### Улучшения (Upgrades)
+
+Улучшения предоставляют постоянные бонусы и могут иметь несколько уровней. Каждое улучшение может содержать:
+
+- `id`: Уникальный идентификатор
+- `name`: Название
+- `description`: Описание
+- `cost`: Стоимость (может быть объектом для нескольких валют)
+- `effects`: Массив эффектов
+- `unlockCondition`: Функция разблокировки
+- `maxLevel`: Максимальный уровень (необязательно)
+- `alwaysVisible`: Всегда отображать, даже если не разблокировано (по умолчанию false)
+
+```javascript
+upgrades: [
+    {
+        id: 'super_click',
+        name: 'Super Click',
+        description: 'Увеличивает силу клика на 50%',
+        cost: { gems: 10 },
+        effects: [
+            { type: 'click', value: 0.5 }
+        ],
+        unlockCondition: (game) => game.getTotalClicks() >= 100,
+        maxLevel: 5
+    }
 ]
 ```
 
-### Офлайн-прогресс
+### Генераторы (Generators)
 
-При включенной опции `offlineProgress` игрок будет получать ресурсы за время, проведенное вне игры. Прогресс рассчитывается автоматически при загрузке сохранения.
+Генераторы автоматически производят ресурсы. Характеристики генератора:
 
-## Советы по использованию
+- `id`: Уникальный идентификатор
+- `name`: Название
+- `currency`: Валюта, которую производит
+- `baseProduction`: Базовая производительность в секунду
+- `cost`: Стоимость покупки
+- `unlockCondition`: Функция разблокировки
+- `efficiency`: Эффективность (можно изменять динамически)
 
-1. **Балансировка игры**: Используйте экспоненциальный рост стоимости для долгосрочной прогрессии
-2. **Условия разблокировки**: Создавайте цепочки разблокировок для управления прогрессией
-3. **События**: Используйте временные события для увеличения вовлеченности
-4. **Модификаторы**: Комбинируйте глобальные и специфические множители для создания интересных механик
-5. **Интерфейс**: Обновляйте UI через систему событий для быстрой реакции на изменения
+```javascript
+generators: [
+    {
+        id: 'gem_extractor',
+        name: 'Gem Extractor',
+        currency: 'gems',
+        baseProduction: 0.01,
+        cost: 100,
+        unlockCondition: (game) => game.getResource('gems') >= 5
+    }
+]
+```
 
-## Ограничения
+### Достижения (Achievements)
 
-1. Библиотека работает только на стороне клиента
-2. Для сохранения используется localStorage (ограничение ~5MB)
-3. Сложные вычисления могут повлиять на производительность при очень большом количестве объектов
+Достижения предоставляют разовые награды и бонусы:
+
+- `id`: Уникальный идентификатор
+- `name`: Название
+- `description`: Описание
+- `condition`: Условие разблокировки
+- `reward`: Награда (объект ресурсов)
+- `modifiers`: Постоянные модификаторы
+
+```javascript
+achievements: [
+    {
+        id: 'millionaire',
+        name: 'Millionaire',
+        description: 'Накопить 1,000,000 золота',
+        condition: (game) => game.getResource('gold') >= 1000000,
+        reward: { gems: 100 },
+        modifiers: [
+            { type: 'production', value: 0.1, target: 'gold' }
+        ]
+    }
+]
+```
+
+### События (Events)
+
+Случайные события предоставляют временные бонусы:
+
+- `id`: Уникальный идентификатор
+- `name`: Название
+- `description`: Описание
+- `duration`: Длительность в секундах
+- `chance`: Шанс появления (необязательно)
+- `rewards`: Награды по завершении
+- `modifiers`: Временные модификаторы
+
+```javascript
+events: [
+    {
+        id: 'lucky_day',
+        name: 'Lucky Day',
+        description: 'Увеличивает шанс критического удара',
+        duration: 60,
+        modifiers: [
+            { type: 'critChance', value: 0.2 }
+        ]
+    }
+]
+```
+
+### Квесты (Quests)
+
+Квесты - задания, которые игрок должен выполнить:
+
+- `id`: Уникальный идентификатор
+- `name`: Название
+- `description`: Описание
+- `condition`: Условие выполнения
+- `reward`: Награда
+- `modifiers`: Постоянные модификаторы
+
+```javascript
+quests: [
+    {
+        id: 'upgrade_master',
+        name: 'Upgrade Master',
+        description: 'Купить 50 улучшений',
+        condition: (game) => {
+            return game.state.upgrades.reduce((sum, u) => sum + u.owned, 0) >= 50;
+        },
+        reward: { gems: 50 }
+    }
+]
+```
+
+### Престиж (Prestige)
+
+Система престижа позволяет перезапустить игру с постоянными бонусами:
+
+- `id`: Уникальный идентификатор
+- `name`: Название
+- `description`: Описание
+- `cost`: Стоимость в престижной валюте
+- `unlockCondition`: Условие разблокировки
+- `effects`: Эффекты улучшения
+
+```javascript
+prestige: [
+    {
+        id: 'eternal_miner',
+        name: 'Eternal Miner',
+        description: 'Увеличивает производство всех ресурсов на 5%',
+        cost: 100,
+        effects: [
+            { type: 'production', value: 0.05 }
+        ],
+        unlockCondition: (game) => game.state.prestige.level >= 3
+    }
+]
+```
+
+## Модификаторы
+
+Библиотека поддерживает три типа модификаторов:
+
+1. **Аддитивные (additive)**: Добавляют значение
+   ```javascript
+   { type: 'click', value: 0.2 }
+   ```
+
+2. **Мультипликативные (multiplicative)**: Умножают значение
+   ```javascript
+   { type: 'production', value: 1.5 }
+   ```
+
+3. **Экспоненциальные (exponential)**: Возводят в степень
+   ```javascript
+   { type: 'prestige', value: 1.1 }
+   ```
+
+Модификаторы могут применяться к:
+- Силе клика (`click`)
+- Производству ресурсов (`production`)
+- Шансу критического удара (`critChance`)
+- Множителю критического удара (`critMultiplier`)
+- Шансу события (`eventChance`)
+- И другим пользовательским параметрам
+
+## Система событий
+
+Библиотека генерирует различные события, на которые можно подписаться:
+
+| Событие                | Описание                                 | Данные                                      |
+|------------------------|------------------------------------------|---------------------------------------------|
+| `gameStarted`          | Игра запущена                            | -                                           |
+| `gameStopped`          | Игра остановлена                         | -                                           |
+| `click`                | Совершён клик                            | `currency`, `amount`, `isCritical`          |
+| `upgradeBought`        | Куплено улучшение                        | `id`, `quantity`, `newLevel`                |
+| `generatorBought`      | Куплен генератор                         | `id`, `quantity`, `newCount`                |
+| `achievementUnlocked`  | Разблокировано достижение                | `id`                                        |
+| `achievementClaimed`   | Получена награда за достижение           | `id`                                        |
+| `questCompleted`       | Завершён квест                           | `id`                                        |
+| `questClaimed`         | Получена награда за квест                | `id`                                        |
+| `eventStarted`         | Началось событие                         | `id`                                        |
+| `eventCompleted`       | Завершилось событие                      | `id`                                        |
+| `prestige`             | Выполнен престиж                         | `level`, `currency`                         |
+| `prestigeUpgradeBought`| Куплено престижное улучшение             | `id`                                        |
+| `save`                 | Игра сохранена                           | `data` (данные сохранения)                  |
+| `load`                 | Игра загружена                           | `data` (данные загрузки)                    |
+| `reset`                | Игра сброшена                            | -                                           |
+| `update`               | Обновление игры (каждые 250мс)           | `delta` (время с последнего обновления)     |
+| `offlineProgress`      | Загружен офлайн-прогресс                 | `time` (время в офлайне)                    |
+| `error`                | Произошла ошибка                         | `message`, `error`                          |
+
+## Расширенные примеры
+
+### Пользовательский генератор ресурсов
+
+```javascript
+// Создаем кнопку для ручной добычи золота
+document.getElementById('mine-gold').addEventListener('click', () => {
+    const amountMined = game.click('gold');
+    updateUI();
+});
+
+// Функция обновления интерфейса
+function updateUI() {
+    document.getElementById('gold-count').textContent = 
+        game.formatNumber(game.getResource('gold'));
+    
+    document.getElementById('gems-count').textContent = 
+        game.formatNumber(game.getResource('gems'));
+    
+    document.getElementById('gold-per-second').textContent = 
+        game.formatNumber(game.getResourcePerSecond('gold'));
+}
+
+// Обновляем UI при изменениях
+game.on('update', updateUI);
+game.on('upgradeBought', updateUI);
+game.on('generatorBought', updateUI);
+```
+
+### Система престижа с бонусами
+
+```javascript
+// Проверка доступности престижа
+function checkPrestige() {
+    const canPrestige = game.canPrestige();
+    document.getElementById('prestige-button').disabled = !canPrestige;
+    
+    if (canPrestige) {
+        const prestigeData = game._calculatePrestige();
+        document.getElementById('prestige-info').textContent = 
+            `После престижа вы получите: ${prestigeData.currency.toFixed(1)} престижных очков`;
+    }
+}
+
+// Кнопка престижа
+document.getElementById('prestige-button').addEventListener('click', () => {
+    if (game.prestige()) {
+        alert('Престиж выполнен! Ваша игра перезапущена с бонусами.');
+        updateUI();
+    }
+});
+
+// Обновляем информацию о престиже
+game.on('update', checkPrestige);
+```
+
+### Обработка случайных событий
+
+```javascript
+// Обработка начала события
+game.on('eventStarted', (data) => {
+    const event = game.getEvent(data.id);
+    
+    // Показать уведомление
+    showNotification(`Событие: ${event.name}`, event.description);
+    
+    // Показать индикатор прогресса
+    const eventElement = document.createElement('div');
+    eventElement.id = `event-${event.id}`;
+    eventElement.className = 'active-event';
+    eventElement.innerHTML = `
+        <h3>${event.name}</h3>
+        <div class="progress-bar">
+            <div class="progress"></div>
+        </div>
+    `;
+    document.getElementById('events-container').appendChild(eventElement);
+});
+
+// Обновление прогресса события
+game.on('update', () => {
+    const activeEvents = game.state.events.filter(e => e.active);
+    
+    activeEvents.forEach(event => {
+        const element = document.getElementById(`event-${event.id}`);
+        if (element) {
+            const progress = (event.progress / event.duration) * 100;
+            element.querySelector('.progress').style.width = `${progress}%`;
+        }
+    });
+});
+
+// Обработка завершения события
+game.on('eventCompleted', (data) => {
+    const eventElement = document.getElementById(`event-${data.id}`);
+    if (eventElement) {
+        eventElement.classList.add('completed');
+        setTimeout(() => eventElement.remove(), 3000);
+    }
+});
+```
+
+## Советы по производительности
+
+1. Для сложных вычислений используйте Web Workers
+2. Ограничивайте количество проверок условий
+3. Используйте кеширование для часто используемых значений
+4. При большом количестве элементов используйте виртуализацию
+5. Оптимизируйте функции условий для быстрой работы
 
 ## Заключение
 
-ClickRegen.js предоставляет полный набор инструментов для создания кликер-игр любой сложности. Благодаря гибкой системе конфигурации и мощному API, вы можете реализовать уникальные механики и интересный игровой процесс с минимальными усилиями.
+ClickRegen.js предоставляет мощный набор инструментов для создания кликер-игр любой сложности. Библиотека обрабатывает все основные аспекты игровой механики, позволяя разработчику сосредоточиться на создании увлекательного игрового процесса.
+
+Библиотека полностью самодостаточна, не имеет внешних зависимостей и может использоваться как в браузере, так и в среде Node.js (с некоторыми ограничениями для функций, связанных с DOM).
+
+Для начала работы просто подключите библиотеку и создайте экземпляр игры с вашей конфигурацией!
