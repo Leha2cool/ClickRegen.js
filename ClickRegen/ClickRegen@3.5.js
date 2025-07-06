@@ -917,7 +917,7 @@ class ClickRegen {
         }
         
         // Бонусы от достижений
-        currencyEarned *= 1 + (this.state.achievements.filter(a => a.claimed).length * 0.05;
+        currencyEarned *= 1 + (this.state.achievements.filter(a => a.claimed).length * 0.05);
         
         return {
             level: this.state.prestige.level + 1,
