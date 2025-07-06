@@ -18,7 +18,7 @@ ClickRegen.js - это мощная JavaScript библиотека для со�
 ---
 ## Установка:
 ```html
-<script src="https://cdn.jsdelivr.net/gh/Leha2cool/ClickRegen.js@main/ClickRegen/ClickRegen.js"><script>
+<script src="https://cdn.jsdelivr.net/gh/Leha2cool/ClickRegen.js@main/ClickRegen/ClickRegen.js"></script>
 ```
 ---
 
